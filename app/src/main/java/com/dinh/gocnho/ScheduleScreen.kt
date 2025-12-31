@@ -3,6 +3,7 @@ package com.dinh.gocnho
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,18 +19,29 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -39,8 +51,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 
 data class ScheduleData(
+    val id: Long = System.currentTimeMillis(),
     val location: String,
     val date: String,
     val subject: String
@@ -48,96 +62,153 @@ data class ScheduleData(
 
 @Composable
 fun ScheduleScreen() {
-    val scheduleList = listOf(
-        ScheduleData("Phòng Học Online - Ca 10", "19/09/2025", "Tin học - COM1071"),
-        ScheduleData("Phòng U202 - Ca 6", "19/09/2025", "Giáo dục thể chất - VIE111"),
-        ScheduleData("Phòng P305 - Ca 4", "20/09/2025", "Tin học - COM1071"),
-        ScheduleData("Phòng U202 - Ca 6", "22/09/2025", "Giáo dục thể chất - VIE111"),
-        ScheduleData("Phòng U202 - Ca 6", "24/09/2025", "Giáo dục thể chất - VIE111"),
-        ScheduleData("Phòng P305 - Ca 4", "25/09/2025", "Tin học - COM1071"),
-        ScheduleData("Phòng Học Online - Ca 10", "26/09/2025", "Tin học - COM1071"),
-        ScheduleData("Phòng U202 - Ca 6", "26/09/2025", "Giáo dục thể chất - VIE111")
-    )
+    // Use a mutable state list for dynamic data
+    val scheduleList = remember { mutableStateListOf<ScheduleData>() }
+    
+    // State for Dialog
+    var showDialog by remember { mutableStateOf(false) }
+    var currentEditingItem: ScheduleData? by remember { mutableStateOf(null) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-    ) {
-        // Tab Row
-        var selectedTabIndex by remember { mutableIntStateOf(0) }
-        val tabs = listOf("LỊCH HỌC", "LỊCH THI", "ĐIỂM DANH")
-        
-        // Custom TabRow to match the look roughly (white background, orange indicator)
-        ScrollableTabRow(
-            selectedTabIndex = selectedTabIndex,
-            containerColor = Color.White,
-            contentColor = Color(0xFFFF9800),
-            edgePadding = 0.dp,
-            indicator = { tabPositions ->
-                TabRowDefaults.SecondaryIndicator(
-                    Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                    color = Color(0xFFFF9800)
-                )
-            }
-        ) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index },
-                    text = {
-                        Text(
-                            text = title,
-                            color = if (selectedTabIndex == index) Color(0xFFFF9800) else Color.Gray,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // "7 ngày tới" Button area
-        Card(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(8.dp),
-             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                .fillMaxSize()
+                .background(Color(0xFFF5F5F5))
         ) {
-            Box(
+            // Tab Row
+            var selectedTabIndex by remember { mutableIntStateOf(0) }
+            val tabs = listOf("LỊCH HỌC", "LỊCH THI", "ĐIỂM DANH")
+
+            ScrollableTabRow(
+                selectedTabIndex = selectedTabIndex,
+                containerColor = Color.White,
+                contentColor = Color(0xFFFF9800),
+                edgePadding = 0.dp,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                        color = Color(0xFFFF9800)
+                    )
+                }
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = {
+                            Text(
+                                text = title,
+                                color = if (selectedTabIndex == index) Color(0xFFFF9800) else Color.Gray,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // "7 ngày tới" Button area
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(8.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Text(text = "7 ngày tới", color = Color.Black)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "7 ngày tới", color = Color.Black)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // List of items
+            if (scheduleList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "Chưa có lịch học", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 80.dp) // Space for FAB
+                ) {
+                    items(scheduleList) { item ->
+                        ScheduleItemCard(
+                            item = item,
+                            onClick = {
+                                currentEditingItem = item
+                                showDialog = true
+                            }
+                        )
+                    }
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // List of items
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp)
+        // Floating Action Button
+        FloatingActionButton(
+            onClick = {
+                currentEditingItem = null
+                showDialog = true
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = Color(0xFFFF9800),
+            contentColor = Color.White
         ) {
-            items(scheduleList) { item ->
-                ScheduleItemCard(item)
-            }
+            Icon(Icons.Filled.Add, contentDescription = "Thêm lịch học")
+        }
+
+        // Dialog for Add/Edit
+        if (showDialog) {
+            ScheduleEntryDialog(
+                initialData = currentEditingItem,
+                onDismiss = { showDialog = false },
+                onSave = { newData ->
+                    if (currentEditingItem != null) {
+                        // Edit existing
+                        val index = scheduleList.indexOfFirst { it.id == currentEditingItem!!.id }
+                        if (index != -1) {
+                            scheduleList[index] = newData.copy(id = currentEditingItem!!.id)
+                        }
+                    } else {
+                        // Add new
+                        scheduleList.add(newData)
+                    }
+                    showDialog = false
+                },
+                onDelete = {
+                    if (currentEditingItem != null) {
+                        scheduleList.removeIf { it.id == currentEditingItem!!.id }
+                    }
+                    showDialog = false
+                }
+            )
         }
     }
 }
 
 @Composable
-fun ScheduleItemCard(item: ScheduleData) {
+fun ScheduleItemCard(item: ScheduleData, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -156,7 +227,7 @@ fun ScheduleItemCard(item: ScheduleData) {
                         shape = RoundedCornerShape(12.dp)
                     )
                     .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .width(140.dp) // Fixed width to align nicely like in image
+                    .width(140.dp)
             ) {
                 Text(
                     text = item.location,
@@ -190,6 +261,88 @@ fun ScheduleItemCard(item: ScheduleData) {
                 contentDescription = null,
                 tint = Color.Gray
             )
+        }
+    }
+}
+
+@Composable
+fun ScheduleEntryDialog(
+    initialData: ScheduleData?,
+    onDismiss: () -> Unit,
+    onSave: (ScheduleData) -> Unit,
+    onDelete: () -> Unit
+) {
+    var location by remember { mutableStateOf(initialData?.location ?: "") }
+    var date by remember { mutableStateOf(initialData?.date ?: "") }
+    var subject by remember { mutableStateOf(initialData?.subject ?: "") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = if (initialData == null) "Thêm lịch học" else "Cập nhật lịch học",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    label = { Text("Phòng/Ca (VD: Phòng U202 - Ca 6)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = date,
+                    onValueChange = { date = it },
+                    label = { Text("Ngày (VD: 19/09/2025)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = subject,
+                    onValueChange = { subject = it },
+                    label = { Text("Môn học (VD: Tin học - COM1071)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (initialData != null) {
+                        IconButton(onClick = onDelete) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Xoá", tint = Color.Red)
+                        }
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                    
+                    TextButton(onClick = onDismiss) {
+                        Text("Hủy")
+                    }
+                    Button(
+                        onClick = {
+                            if (location.isNotBlank() && date.isNotBlank() && subject.isNotBlank()) {
+                                onSave(ScheduleData(
+                                    location = location,
+                                    date = date,
+                                    subject = subject
+                                ))
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800))
+                    ) {
+                        Text(if (initialData == null) "Thêm" else "Lưu")
+                    }
+                }
+            }
         }
     }
 }
