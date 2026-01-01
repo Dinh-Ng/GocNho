@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -46,7 +47,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -73,7 +73,7 @@ fun ScheduleScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF5F5F5))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Tab Row
             var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -81,13 +81,13 @@ fun ScheduleScreen() {
 
             ScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,
-                containerColor = Color.White,
-                contentColor = Color(0xFFFF9800),
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
                 edgePadding = 0.dp,
                 indicator = { tabPositions ->
                     TabRowDefaults.SecondaryIndicator(
                         Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                        color = Color(0xFFFF9800)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             ) {
@@ -98,7 +98,7 @@ fun ScheduleScreen() {
                         text = {
                             Text(
                                 text = title,
-                                color = if (selectedTabIndex == index) Color(0xFFFF9800) else Color.Gray,
+                                color = if (selectedTabIndex == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -113,7 +113,7 @@ fun ScheduleScreen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                 shape = RoundedCornerShape(8.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
@@ -123,7 +123,7 @@ fun ScheduleScreen() {
                         .padding(12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "7 ngày tới", color = Color.Black)
+                    Text(text = "7 ngày tới", color = MaterialTheme.colorScheme.onSurface)
                 }
             }
 
@@ -137,7 +137,15 @@ fun ScheduleScreen() {
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "Chưa có lịch học", color = Color.Gray)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        Text(text = "Chưa có lịch học", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             } else {
                 LazyColumn(
@@ -167,8 +175,8 @@ fun ScheduleScreen() {
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
-            containerColor = Color(0xFFFF9800),
-            contentColor = Color.White
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
         ) {
             Icon(Icons.Filled.Add, contentDescription = "Thêm lịch học")
         }
@@ -209,7 +217,7 @@ fun ScheduleItemCard(item: ScheduleData, onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -219,11 +227,11 @@ fun ScheduleItemCard(item: ScheduleData, onClick: () -> Unit) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Room/Shift Box with Orange Border
+            // Room/Shift Box with Primary Border
             Box(
                 modifier = Modifier
                     .border(
-                        border = BorderStroke(1.dp, Color(0xFFFF9800)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(12.dp)
                     )
                     .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -232,7 +240,7 @@ fun ScheduleItemCard(item: ScheduleData, onClick: () -> Unit) {
                 Text(
                     text = item.location,
                     fontSize = 13.sp,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -244,14 +252,14 @@ fun ScheduleItemCard(item: ScheduleData, onClick: () -> Unit) {
                 Text(
                     text = item.date,
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = item.subject,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -259,7 +267,7 @@ fun ScheduleItemCard(item: ScheduleData, onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = Color.Gray
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -279,7 +287,7 @@ fun ScheduleEntryDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = Color.White
+            color = MaterialTheme.colorScheme.surfaceContainer
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -288,7 +296,8 @@ fun ScheduleEntryDialog(
                 Text(
                     text = if (initialData == null) "Thêm lịch học" else "Cập nhật lịch học",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 OutlinedTextField(
@@ -319,7 +328,7 @@ fun ScheduleEntryDialog(
                 ) {
                     if (initialData != null) {
                         IconButton(onClick = onDelete) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Xoá", tint = Color.Red)
+                            Icon(Icons.Filled.Delete, contentDescription = "Xoá", tint = MaterialTheme.colorScheme.error)
                         }
                         Spacer(modifier = Modifier.weight(1f))
                     }
@@ -336,8 +345,7 @@ fun ScheduleEntryDialog(
                                     subject = subject
                                 ))
                             }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800))
+                        }
                     ) {
                         Text(if (initialData == null) "Thêm" else "Lưu")
                     }
