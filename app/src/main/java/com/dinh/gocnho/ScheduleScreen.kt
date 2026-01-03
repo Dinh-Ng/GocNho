@@ -1,5 +1,8 @@
 package com.dinh.gocnho
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,17 +19,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,14 +44,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,9 +63,17 @@ import androidx.compose.ui.window.Dialog
 
 data class ScheduleData(
     val id: Long = System.currentTimeMillis(),
-    val location: String,
-    val date: String,
-    val subject: String
+    val location: String, // e.g. "Phòng F407 - Ca 2"
+    val date: String,     // e.g. "07/12/2025"
+    val subject: String,  // e.g. "Nhập môn CN.. - ITI101"
+    
+    // New fields for expansion
+    val campus: String = "TVB",
+    val room: String = "F407",
+    val subjectCode: String = "ITI101",
+    val time: String = "09:25 - 11:25",
+    val clazz: String = "MD21302",
+    val teacher: String = "hoangvt16"
 )
 
 @Composable
@@ -70,12 +91,6 @@ fun ScheduleScreen() {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Hamburger Menu Button (Placeholder for sidebar or other actions if needed here, 
-            // though main navigation is usually in MainActivity. 
-            // Based on request "only keep button with hambuger icon", I will put it here if this screen is standalone,
-            // but usually hamburger is part of TopAppBar. Since the user asked to "remove tabview", I will focus on that.
-            // Assuming the TopAppBar in MainActivity already handles the main hamburger menu.
-            // If the user meant a button *inside* this screen content:
             
             // "7 ngày tới" Button area
             Card(
@@ -123,7 +138,7 @@ fun ScheduleScreen() {
                     items(scheduleList) { item ->
                         ScheduleItemCard(
                             item = item,
-                            onClick = {
+                            onEdit = {
                                 currentEditingItem = item
                                 showDialog = true
                             }
@@ -178,66 +193,136 @@ fun ScheduleScreen() {
 }
 
 @Composable
-fun ScheduleItemCard(item: ScheduleData, onClick: () -> Unit) {
+fun ScheduleItemCard(item: ScheduleData, onEdit: () -> Unit) {
+    var isExpanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .clickable(onClick = onClick),
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+            .clickable { isExpanded = !isExpanded },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Room/Shift Box with Primary Border
-            Box(
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Header Row (Always visible)
+            Row(
                 modifier = Modifier
-                    .border(
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .width(140.dp)
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = item.location,
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Medium
+                // Room/Shift Box with Primary Border
+                Box(
+                    modifier = Modifier
+                        .border(
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .width(140.dp)
+                ) {
+                    Text(
+                        text = item.location,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Date and Subject info
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.date,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = item.subject,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Arrow Icon
+                Icon(
+                    imageVector = Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.rotate(if (isExpanded) 180f else 0f)
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            // Expanded Details
+            if (isExpanded) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    // Left Column
+                    Column(modifier = Modifier.weight(1f)) {
+                        DetailText("Giảng đường", item.campus)
+                        DetailText("Phòng", item.room)
+                        DetailText("Mã môn", item.subjectCode)
+                        DetailText("Thời gian", item.time)
+                    }
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
 
-            // Date and Subject info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.date,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = item.subject,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                    // Right Column
+                    Column(modifier = Modifier.weight(1f)) {
+                        DetailText("Lớp", item.clazz)
+                        DetailText("Giảng viên", item.teacher)
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        // Edit Button inside expanded view
+                         Button(
+                            onClick = onEdit,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            ),
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = "Sửa", modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Sửa", fontSize = 12.sp)
+                        }
+                    }
+                }
             }
-
-            // Arrow Icon
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
+}
+
+@Composable
+fun DetailText(label: String, value: String) {
+    Text(
+        text = buildAnnotatedString {
+            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
+                append("$label: ")
+            }
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)) {
+                append(value)
+            }
+        },
+        fontSize = 13.sp,
+        modifier = Modifier.padding(vertical = 2.dp)
+    )
 }
 
 @Composable
@@ -250,6 +335,14 @@ fun ScheduleEntryDialog(
     var location by remember { mutableStateOf(initialData?.location ?: "") }
     var date by remember { mutableStateOf(initialData?.date ?: "") }
     var subject by remember { mutableStateOf(initialData?.subject ?: "") }
+    
+    // New fields
+    var campus by remember { mutableStateOf(initialData?.campus ?: "") }
+    var room by remember { mutableStateOf(initialData?.room ?: "") }
+    var subjectCode by remember { mutableStateOf(initialData?.subjectCode ?: "") }
+    var time by remember { mutableStateOf(initialData?.time ?: "") }
+    var clazz by remember { mutableStateOf(initialData?.clazz ?: "") }
+    var teacher by remember { mutableStateOf(initialData?.teacher ?: "") }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -257,7 +350,9 @@ fun ScheduleEntryDialog(
             color = MaterialTheme.colorScheme.surfaceContainer
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
@@ -270,26 +365,35 @@ fun ScheduleEntryDialog(
                 OutlinedTextField(
                     value = location,
                     onValueChange = { location = it },
-                    label = { Text("Phòng/Ca (VD: Phòng U202 - Ca 6)") },
+                    label = { Text("Tiêu đề (VD: Phòng F407 - Ca 2)") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 OutlinedTextField(
                     value = date,
                     onValueChange = { date = it },
-                    label = { Text("Ngày (VD: 19/09/2025)") },
+                    label = { Text("Ngày (VD: 07/12/2025)") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 OutlinedTextField(
                     value = subject,
                     onValueChange = { subject = it },
-                    label = { Text("Môn học (VD: Tin học - COM1071)") },
+                    label = { Text("Môn học (VD: Nhập môn... - ITI101)") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                
+                // Additional Fields
+                OutlinedTextField(value = campus, onValueChange = { campus = it }, label = { Text("Giảng đường (VD: TVB)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = room, onValueChange = { room = it }, label = { Text("Phòng (VD: F407)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = subjectCode, onValueChange = { subjectCode = it }, label = { Text("Mã môn (VD: ITI101)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = time, onValueChange = { time = it }, label = { Text("Thời gian (VD: 09:25 - 11:25)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = clazz, onValueChange = { clazz = it }, label = { Text("Lớp (VD: MD21302)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = teacher, onValueChange = { teacher = it }, label = { Text("Giảng viên (VD: hoangvt16)") }, modifier = Modifier.fillMaxWidth())
+
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -305,11 +409,17 @@ fun ScheduleEntryDialog(
                     }
                     Button(
                         onClick = {
-                            if (location.isNotBlank() && date.isNotBlank() && subject.isNotBlank()) {
+                            if (location.isNotBlank()) {
                                 onSave(ScheduleData(
                                     location = location,
                                     date = date,
-                                    subject = subject
+                                    subject = subject,
+                                    campus = campus,
+                                    room = room,
+                                    subjectCode = subjectCode,
+                                    time = time,
+                                    clazz = clazz,
+                                    teacher = teacher
                                 ))
                             }
                         }
