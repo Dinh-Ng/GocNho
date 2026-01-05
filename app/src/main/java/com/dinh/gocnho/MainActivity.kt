@@ -67,6 +67,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dinh.gocnho.ui.theme.AppThemeMode
 import com.dinh.gocnho.ui.theme.GócNhỏTheme
 import kotlinx.coroutines.launch
 
@@ -76,12 +77,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             // Quản lý trạng thái dark mode ở cấp cao nhất
-            var isDarkTheme by remember { mutableStateOf(false) }
+            var themeMode by remember { mutableStateOf(AppThemeMode.SYSTEM) }
             
-            GócNhỏTheme(darkTheme = isDarkTheme) {
+            GócNhỏTheme(themeMode = themeMode) {
                 MainScreen(
-                    isDarkTheme = isDarkTheme,
-                    onThemeChange = { isDarkTheme = it }
+                    themeMode = themeMode,
+                    onThemeChange = { themeMode = it }
                 )
             }
         }
@@ -95,12 +96,20 @@ enum class Screen {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    isDarkTheme: Boolean,
-    onThemeChange: (Boolean) -> Unit
+    themeMode: AppThemeMode,
+    onThemeChange: (AppThemeMode) -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedScreen by remember { mutableStateOf(Screen.HOME) }
+    
+    // Determine if we are effectively in dark mode for UI elements that need to know
+    // This is a simplified check, ideally we should query system theme if MODE is SYSTEM
+    val isDarkUI = when(themeMode) {
+        AppThemeMode.DARK -> true
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -111,8 +120,7 @@ fun MainScreen(
                     selectedScreen = screen
                     scope.launch { drawerState.close() }
                 },
-                isDarkTheme = isDarkTheme,
-                onThemeChange = onThemeChange
+                isDarkTheme = isDarkUI
             )
         }
     ) {
@@ -151,7 +159,10 @@ fun MainScreen(
                     Screen.STORY -> StoryScreen()
                     Screen.GAME -> GameScreen()
                     Screen.PROFILE -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Màn hình Hồ sơ") }
-                    Screen.SETTINGS -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Màn hình Cài đặt") }
+                    Screen.SETTINGS -> SettingsScreen(
+                        currentThemeMode = themeMode,
+                        onThemeChange = onThemeChange
+                    )
                     Screen.SCHEDULE -> ScheduleScreen()
                 }
             }
@@ -163,8 +174,7 @@ fun MainScreen(
 fun AppDrawer(
     selectedScreen: Screen,
     onScreenSelected: (Screen) -> Unit,
-    isDarkTheme: Boolean,
-    onThemeChange: (Boolean) -> Unit
+    isDarkTheme: Boolean
 ) {
     ModalDrawerSheet(
         drawerContainerColor = if (isDarkTheme) Color(0xFF0F172A) else Color.White, // Dark blue-ish for dark mode
@@ -333,33 +343,6 @@ fun AppDrawer(
                     selectedContainerColor = Color(0xFF2196F3),
                     selectedIconColor = Color.White,
                     selectedTextColor = Color.White,
-                    unselectedIconColor = if (isDarkTheme) Color.Gray else Color.DarkGray,
-                    unselectedTextColor = if (isDarkTheme) Color.LightGray else Color.Black
-                ),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
-
-            // Dark Mode Toggle Item
-            NavigationDrawerItem(
-                label = { Text("Chế độ tối") },
-                icon = { Icon(Icons.Filled.Settings, contentDescription = null) }, // Use Settings as placeholder for DarkMode icon
-                selected = false,
-                onClick = { onThemeChange(!isDarkTheme) },
-                badge = {
-                    Switch(
-                        checked = isDarkTheme,
-                        onCheckedChange = onThemeChange,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color(0xFF2196F3),
-                            checkedTrackColor = Color(0xFFBBDEFB),
-                            uncheckedThumbColor = Color.Gray,
-                            uncheckedTrackColor = Color.LightGray
-                        )
-                    )
-                },
-                colors = NavigationDrawerItemDefaults.colors(
-                    unselectedContainerColor = Color.Transparent,
                     unselectedIconColor = if (isDarkTheme) Color.Gray else Color.DarkGray,
                     unselectedTextColor = if (isDarkTheme) Color.LightGray else Color.Black
                 ),
