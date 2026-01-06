@@ -4,10 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,11 +33,11 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,11 +45,12 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
@@ -63,8 +64,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dinh.gocnho.ui.theme.AppThemeMode
@@ -103,8 +106,10 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     var selectedScreen by remember { mutableStateOf(Screen.HOME) }
     
+    // Admin state
+    var isAdmin by remember { mutableStateOf(false) }
+    
     // Determine if we are effectively in dark mode for UI elements that need to know
-    // This is a simplified check, ideally we should query system theme if MODE is SYSTEM
     val isDarkUI = when(themeMode) {
         AppThemeMode.DARK -> true
         AppThemeMode.LIGHT -> false
@@ -120,7 +125,9 @@ fun MainScreen(
                     selectedScreen = screen
                     scope.launch { drawerState.close() }
                 },
-                isDarkTheme = isDarkUI
+                isDarkTheme = isDarkUI,
+                isAdmin = isAdmin,
+                onAdminChange = { isAdmin = it }
             )
         }
     ) {
@@ -170,14 +177,21 @@ fun MainScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppDrawer(
     selectedScreen: Screen,
     onScreenSelected: (Screen) -> Unit,
-    isDarkTheme: Boolean
+    isDarkTheme: Boolean,
+    isAdmin: Boolean,
+    onAdminChange: (Boolean) -> Unit
 ) {
+    var showAdminLoginDialog by remember { mutableStateOf(false) }
+    var showAdminLogoutDialog by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
+
     ModalDrawerSheet(
-        drawerContainerColor = if (isDarkTheme) Color(0xFF0F172A) else Color.White, // Dark blue-ish for dark mode
+        drawerContainerColor = if (isDarkTheme) Color(0xFF0F172A) else Color.White,
         drawerContentColor = if (isDarkTheme) Color.White else Color.Black
     ) {
         Column(
@@ -191,12 +205,23 @@ fun AppDrawer(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
             ) {
-                // Avatar Placeholder
+                // Avatar Placeholder (Button now)
                 Box(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(Color.Gray),
+                        .background(if (isAdmin) Color(0xFF4CAF50) else Color.Gray) // Green if admin, Gray otherwise
+                        .combinedClickable(
+                                onClick = { /* Normal click */ },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    if (isAdmin) {
+                                        showAdminLogoutDialog = true
+                                    } else {
+                                        showAdminLoginDialog = true
+                                    }
+                                }
+                            ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -204,24 +229,6 @@ fun AppDrawer(
                         contentDescription = null,
                         tint = Color.White
                     )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Minh Hoàng",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) Color.White else Color.Black
-                    )
-                    // Online status dot (green)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                         Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF4CAF50))
-                        )
-                    }
                 }
             }
 
@@ -352,21 +359,6 @@ fun AppDrawer(
             
             Spacer(modifier = Modifier.weight(1f))
             
-            // Footer
-            Button(
-                onClick = { /* Logout */ },
-                modifier = Modifier.fillMaxWidth().border(1.dp, Color.Gray, RoundedCornerShape(8.dp)),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = if (isDarkTheme) Color(0xFFFF8A80) else Color.Red
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                 Spacer(modifier = Modifier.width(8.dp))
-                 Text("Đăng xuất")
-            }
-            
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Phiên bản 2.4.0",
@@ -376,4 +368,93 @@ fun AppDrawer(
             )
         }
     }
+
+    if (showAdminLoginDialog) {
+        AdminLoginDialog(
+            onDismiss = { showAdminLoginDialog = false },
+            onLoginSuccess = {
+                onAdminChange(true)
+                showAdminLoginDialog = false
+            }
+        )
+    }
+
+    if (showAdminLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAdminLogoutDialog = false },
+            title = { Text("Đăng xuất Admin") },
+            text = { Text("Bạn có chắc chắn muốn thoát quyền quản trị viên?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onAdminChange(false)
+                    showAdminLogoutDialog = false
+                }) {
+                    Text("Đồng ý")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAdminLogoutDialog = false }) {
+                    Text("Hủy")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun AdminLoginDialog(
+    onDismiss: () -> Unit,
+    onLoginSuccess: () -> Unit
+) {
+    var password by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Xác thực Admin") },
+        text = {
+            Column {
+                Text("Nhập mã xác thực:")
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { 
+                        password = it
+                        isError = false
+                    },
+                    label = { Text("Mã xác thực") },
+                    isError = isError,
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (isError) {
+                    Text(
+                        text = "Mã xác thực không đúng!",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (password == "115197") {
+                        onLoginSuccess()
+                    } else {
+                        isError = true
+                    }
+                }
+            ) {
+                Text("Xác nhận")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Hủy")
+            }
+        }
+    )
 }
