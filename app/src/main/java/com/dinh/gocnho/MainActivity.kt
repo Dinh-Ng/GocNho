@@ -299,6 +299,7 @@ fun AppDrawer(
                 modifier = Modifier.padding(vertical = 4.dp)
             )
 
+/*
              NavigationDrawerItem(
                 label = { Text("Lịch học") },
                 icon = { Icon(Icons.Filled.Star, contentDescription = null) }, // Using Star as placeholder
@@ -314,6 +315,7 @@ fun AppDrawer(
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.padding(vertical = 4.dp)
             )
+*/
 
             Spacer(modifier = Modifier.height(24.dp))
 
