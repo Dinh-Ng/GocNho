@@ -1,9 +1,11 @@
 package com.dinh.gocnho.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -12,9 +14,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -24,9 +28,17 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,48 +47,123 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 data class GameItem(
+    val id: String,
     val title: String,
     val description: String,
     val highScore: Int,
-    val category: String,
+    val isFavorite: Boolean = false,
     val imageUrl: String? = null
 )
 
 @Composable
 fun GameScreen() {
-    val games = listOf(
-        GameItem(
-            title = "Block Puzzle",
-            description = "Strategically fit blocks into the grid to clear lines and rows.",
-            highScore = 4120,
-            category = "RELAX"
-        ),
-        GameItem(
-            title = "Sudoku Classic",
-            description = "Challenge your mind with classic Sudoku puzzles of varying difficulty.",
-            highScore = 1250,
-            category = "BRAIN"
-        ),
-        GameItem(
-            title = "Word Master",
-            description = "Find hidden words and expand your vocabulary in this addictive game.",
-            highScore = 850,
-            category = "WORDS"
+    var games by remember {
+        mutableStateOf(
+            listOf(
+                GameItem(
+                    id = "1",
+                    title = "Block Puzzle",
+                    description = "Strategically fit blocks into the grid to clear lines and rows.",
+                    highScore = 4120
+                ),
+                GameItem(
+                    id = "2",
+                    title = "Sudoku Classic",
+                    description = "Challenge your mind with classic Sudoku puzzles of varying difficulty.",
+                    highScore = 1250
+                ),
+                GameItem(
+                    id = "3",
+                    title = "Word Master",
+                    description = "Find hidden words and expand your vocabulary in this addictive game.",
+                    highScore = 850
+                )
+            )
         )
-    )
+    }
 
-    LazyColumn(
+    val tabs = listOf("All Games", "Favorites")
+    val pagerState = rememberPagerState(pageCount = { tabs.size })
+    val scope = rememberCoroutineScope()
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F172A)) // Dark background
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+            .background(Color(0xFF0F172A))
     ) {
-        items(games) { game ->
-            GameCard(game = game)
+        TabRow(
+            selectedTabIndex = pagerState.currentPage,
+            containerColor = Color(0xFF1E293B),
+            contentColor = Color.White,
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                    color = Color(0xFF0284C7)
+                )
+            },
+            divider = {}
+        ) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = pagerState.currentPage == index,
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
+                    },
+                    text = {
+                        Text(
+                            text = title,
+                            fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 14.sp
+                        )
+                    }
+                )
+            }
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.Top
+        ) { page ->
+            val filteredGames = when (page) {
+                0 -> games
+                1 -> games.filter { it.isFavorite }
+                else -> games
+            }
+
+            GameList(
+                games = filteredGames,
+                onFavoriteToggle = { game ->
+                    games = games.map {
+                        if (it.id == game.id) it.copy(isFavorite = !it.isFavorite) else it
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun GameList(
+    games: List<GameItem>,
+    onFavoriteToggle: (GameItem) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        items(games, key = { it.id }) { game ->
+            GameCard(
+                game = game,
+                onFavoriteToggle = { onFavoriteToggle(game) }
+            )
         }
     }
 }
@@ -88,7 +175,7 @@ fun GameScreenPreview() {
 }
 
 @Composable
-fun GameCard(game: GameItem) {
+fun GameCard(game: GameItem, onFavoriteToggle: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -105,22 +192,22 @@ fun GameCard(game: GameItem) {
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color(0xFF334155))
             ) {
-                // Category Tag
+                // Favorite Button
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(12.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable { onFavoriteToggle() }
+                        .padding(8.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Favorite",
+                        tint = if (game.isFavorite) Color(0xFFFFD700) else Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
                 
                 // Placeholder for actual game image
