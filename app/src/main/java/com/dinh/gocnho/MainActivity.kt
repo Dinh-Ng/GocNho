@@ -66,6 +66,7 @@ import com.dinh.gocnho.screens.GameScreen
 import com.dinh.gocnho.screens.ScheduleScreen
 import com.dinh.gocnho.screens.SettingsScreen
 import com.dinh.gocnho.screens.StoryScreen
+import com.dinh.gocnho.screens.TetrisScreen
 import com.dinh.gocnho.ui.theme.AppThemeMode
 import com.dinh.gocnho.ui.theme.GócNhỏTheme
 import kotlinx.coroutines.launch
@@ -101,6 +102,8 @@ fun MainScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedScreen by remember { mutableStateOf(Screen.HOME) }
+    // Tracks which game is currently open (null = show game list)
+    var currentGameId by remember { mutableStateOf<String?>(null) }
     
     // Admin state
     var isAdmin by remember { mutableStateOf(false) }
@@ -160,7 +163,15 @@ fun MainScreen(
                 when (selectedScreen) {
                     Screen.HOME -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Màn hình Trang chủ") }
                     Screen.STORY -> StoryScreen()
-                    Screen.GAME -> GameScreen()
+                    Screen.GAME -> {
+                        if (currentGameId == "tetris") {
+                            TetrisScreen(onBack = { currentGameId = null })
+                        } else {
+                            GameScreen(onPlayClick = { game ->
+                                if (game.id == "tetris") currentGameId = "tetris"
+                            })
+                        }
+                    }
                     Screen.PROFILE -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Màn hình Hồ sơ") }
                     Screen.SETTINGS -> SettingsScreen(
                         currentThemeMode = themeMode,

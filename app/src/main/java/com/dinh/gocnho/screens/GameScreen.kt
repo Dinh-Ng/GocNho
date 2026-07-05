@@ -1,5 +1,6 @@
 package com.dinh.gocnho.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -42,6 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,7 +63,7 @@ data class GameItem(
 )
 
 @Composable
-fun GameScreen() {
+fun GameScreen(onPlayClick: (GameItem) -> Unit = {}) {
     var games by remember {
         mutableStateOf(
             listOf(
@@ -81,6 +84,12 @@ fun GameScreen() {
                     title = "Word Master",
                     description = "Find hidden words and expand your vocabulary in this addictive game.",
                     highScore = 850
+                ),
+                GameItem(
+                    id = "tetris",
+                    title = "Tetris",
+                    description = "Classic block falling puzzle game. Stack the pieces, clear the lines!",
+                    highScore = 0
                 )
             )
         )
@@ -143,7 +152,8 @@ fun GameScreen() {
                     games = games.map {
                         if (it.id == game.id) it.copy(isFavorite = !it.isFavorite) else it
                     }
-                }
+                },
+                onPlayClick = onPlayClick
             )
         }
     }
@@ -152,7 +162,8 @@ fun GameScreen() {
 @Composable
 fun GameList(
     games: List<GameItem>,
-    onFavoriteToggle: (GameItem) -> Unit
+    onFavoriteToggle: (GameItem) -> Unit,
+    onPlayClick: (GameItem) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -162,7 +173,8 @@ fun GameList(
         items(games, key = { it.id }) { game ->
             GameCard(
                 game = game,
-                onFavoriteToggle = { onFavoriteToggle(game) }
+                onFavoriteToggle = { onFavoriteToggle(game) },
+                onPlayClick = { onPlayClick(game) }
             )
         }
     }
@@ -174,8 +186,95 @@ fun GameScreenPreview() {
     GameScreen()
 }
 
+// ---------------------------------------------------------------------------
+// Tetris thumbnail: a tiny decorative canvas of stacked colored blocks
+// ---------------------------------------------------------------------------
 @Composable
-fun GameCard(game: GameItem, onFavoriteToggle: () -> Unit) {
+fun TetrisPreviewCanvas(modifier: Modifier = Modifier) {
+    // A hand-crafted 10×8 mini-board for visual appeal
+    val previewColors = listOf(
+        Color(0xFF00BCD4), // I - cyan
+        Color(0xFFFFEB3B), // O - yellow
+        Color(0xFF9C27B0), // T - purple
+        Color(0xFF4CAF50), // S - green
+        Color(0xFFF44336), // Z - red
+        Color(0xFF2196F3), // J - blue
+        Color(0xFFFF9800), // L - orange
+    )
+    // Each row: list of colorIndex or -1 for empty
+    val miniBoard = listOf(
+        listOf(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+        listOf(-1, -1, -1, 0,  0,  0,  0,  -1, -1, -1),
+        listOf(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
+        listOf(-1, 6,  -1, 2,  2,  2,  -1, 1,  1,  -1),
+        listOf(-1, 6,  6,  -1, 2,  -1, -1, 1,  1,  -1),
+        listOf(4,  4,  6,  -1, 3,  3,  -1, -1, 5,  5),
+        listOf(-1, 4,  5,  5,  -1, 3,  -1, -1, -1, 5),
+        listOf(6,  6,  6,  5,  0,  0,  0,  0,  3,  3),
+    )
+    Canvas(modifier = modifier) {
+        val cols = 10
+        val rows = miniBoard.size
+        val cellW = size.width / cols
+        val cellH = size.height / rows
+        val gap = 2f
+
+        for (row in 0 until rows) {
+            for (col in 0 until cols) {
+                val colorIdx = miniBoard[row][col]
+                val left = col * cellW + gap
+                val top = row * cellH + gap
+                val w = cellW - gap * 2
+                val h = cellH - gap * 2
+                if (colorIdx < 0) {
+                    // empty cell — subtle grid dot
+                    drawRect(
+                        color = Color(0xFF1E3A5F),
+                        topLeft = Offset(left, top),
+                        size = Size(w, h)
+                    )
+                } else {
+                    val base = previewColors[colorIdx]
+                    // face
+                    drawRect(
+                        color = base,
+                        topLeft = Offset(left, top),
+                        size = Size(w, h)
+                    )
+                    // highlight (top-left bevel)
+                    drawRect(
+                        color = base.copy(alpha = 0.6f),
+                        topLeft = Offset(left, top),
+                        size = Size(w, 3f)
+                    )
+                    drawRect(
+                        color = base.copy(alpha = 0.6f),
+                        topLeft = Offset(left, top),
+                        size = Size(3f, h)
+                    )
+                    // shadow (bottom-right bevel)
+                    drawRect(
+                        color = Color.Black.copy(alpha = 0.4f),
+                        topLeft = Offset(left, top + h - 3f),
+                        size = Size(w, 3f)
+                    )
+                    drawRect(
+                        color = Color.Black.copy(alpha = 0.4f),
+                        topLeft = Offset(left + w - 3f, top),
+                        size = Size(3f, h)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GameCard(
+    game: GameItem,
+    onFavoriteToggle: () -> Unit,
+    onPlayClick: () -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -192,6 +291,23 @@ fun GameCard(game: GameItem, onFavoriteToggle: () -> Unit) {
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color(0xFF334155))
             ) {
+                // Tetris-specific thumbnail
+                if (game.id == "tetris") {
+                    TetrisPreviewCanvas(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // Generic placeholder for other games
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .align(Alignment.Center),
+                        tint = Color.White.copy(alpha = 0.3f)
+                    )
+                }
+
                 // Favorite Button
                 Box(
                     modifier = Modifier
@@ -209,14 +325,6 @@ fun GameCard(game: GameItem, onFavoriteToggle: () -> Unit) {
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                
-                // Placeholder for actual game image
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp).align(Alignment.Center),
-                    tint = Color.White.copy(alpha = 0.3f)
-                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -265,7 +373,7 @@ fun GameCard(game: GameItem, onFavoriteToggle: () -> Unit) {
 
             // Play Button
             Button(
-                onClick = { /* Handle play click */ },
+                onClick = onPlayClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
