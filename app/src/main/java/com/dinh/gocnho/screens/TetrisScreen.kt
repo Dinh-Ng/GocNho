@@ -337,8 +337,8 @@ fun TetrisScreen(onBack: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.52f)           // ~52% of remaining height
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .weight(0.58f)           // Increased weight to give the board more vertical height
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
                     .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
                     .clip(RoundedCornerShape(12.dp))
                     .background(ScreenBezel)
@@ -348,33 +348,36 @@ fun TetrisScreen(onBack: () -> Unit) {
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(6.dp)
+                        .padding(8.dp)
                 ) {
                     // ── BOARD (left, ~65% of screen width) ──────────────────
                     Canvas(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .aspectRatio(BOARD_COLS.toFloat() / BOARD_ROWS.toFloat())
+                            .aspectRatio(BOARD_COLS.toFloat() / BOARD_ROWS.toFloat(), matchHeightConstraintsFirst = true)
                             .background(LcdBg)
                     ) {
-                        val cs = size.width / BOARD_COLS
+                        val cs = minOf(size.width / BOARD_COLS, size.height / BOARD_ROWS)
+                        val offsetX = (size.width - BOARD_COLS * cs) / 2f
+                        val offsetY = (size.height - BOARD_ROWS * cs) / 2f
+
                         for (r in 0 until BOARD_ROWS) {
                             for (c in 0 until BOARD_COLS) {
                                 val col = board[r][c]
-                                if (col != null) drawCell(this, col, c * cs, r * cs, cs)
-                                else drawEmptyCell(this, c * cs, r * cs, cs)
+                                if (col != null) drawCell(this, col, offsetX + c * cs, offsetY + r * cs, cs)
+                                else drawEmptyCell(this, offsetX + c * cs, offsetY + r * cs, cs)
                             }
                         }
                         if (!isGameOver) {
                             ghost.cells.forEach { (r, c) ->
                                 if (r >= 0) drawRect(
                                     color = current.type.color.copy(alpha = 0.18f),
-                                    topLeft = Offset(c * cs + 2f, r * cs + 2f),
+                                    topLeft = Offset(offsetX + c * cs + 2f, offsetY + r * cs + 2f),
                                     size = Size(cs - 4f, cs - 4f)
                                 )
                             }
                             current.cells.forEach { (r, c) ->
-                                if (r >= 0) drawCell(this, current.type.color, c * cs, r * cs, cs)
+                                if (r >= 0) drawCell(this, current.type.color, offsetX + c * cs, offsetY + r * cs, cs)
                             }
                         }
                     }
@@ -397,136 +400,152 @@ fun TetrisScreen(onBack: () -> Unit) {
                             .fillMaxHeight()
                             .weight(1f)
                             .background(SidebarBg)
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                            .padding(horizontal = 6.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // NEXT preview
-                        Text(
-                            text = "NEXT",
-                            color = StatLabel,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-                        Canvas(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(LcdBg)
-                                .border(1.dp, ScreenBorder, RoundedCornerShape(4.dp))
+                        // NEXT preview group
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            val cells = SHAPES[next.type]!![0]
-                            val minR = cells.minOf { it.first }; val minC = cells.minOf { it.second }
-                            val maxR = cells.maxOf { it.first }; val maxC = cells.maxOf { it.second }
-                            val spanR = (maxR - minR + 1).coerceAtLeast(1)
-                            val spanC = (maxC - minC + 1).coerceAtLeast(1)
-                            val cellSz = minOf(size.width / (spanC + 1f), size.height / (spanR + 1f))
-                            val ox = (size.width - spanC * cellSz) / 2f
-                            val oy = (size.height - spanR * cellSz) / 2f
-                            cells.forEach { (dr, dc) ->
-                                drawCell(this, next.type.color, ox + (dc - minC) * cellSz, oy + (dr - minR) * cellSz, cellSz, 1.5f)
+                            Text(
+                                text = "NEXT",
+                                color = StatLabel,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                            Canvas(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(LcdBg)
+                                    .border(1.dp, ScreenBorder, RoundedCornerShape(4.dp))
+                            ) {
+                                val cells = SHAPES[next.type]!![0]
+                                val minR = cells.minOf { it.first }; val minC = cells.minOf { it.second }
+                                val maxR = cells.maxOf { it.first }; val maxC = cells.maxOf { it.second }
+                                val spanR = (maxR - minR + 1).coerceAtLeast(1)
+                                val spanC = (maxC - minC + 1).coerceAtLeast(1)
+                                val cellSz = minOf(size.width / (spanC + 1f), size.height / (spanR + 1f))
+                                val ox = (size.width - spanC * cellSz) / 2f
+                                val oy = (size.height - spanR * cellSz) / 2f
+                                cells.forEach { (dr, dc) ->
+                                    drawCell(this, next.type.color, ox + (dc - minC) * cellSz, oy + (dr - minR) * cellSz, cellSz, 1.5f)
+                                }
                             }
                         }
 
                         // Divider line
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(ScreenBorder))
 
-                        // SCORE
-                        SidebarStat(label = "SCORE", value = String.format(Locale.US, "%,d", score), valueColor = Color(0xFF4ADE80))
+                        // Stats Group (neatly stacked closer together)
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // SCORE
+                            SidebarStat(label = "SCORE", value = String.format(Locale.US, "%,d", score), valueColor = Color(0xFF4ADE80))
 
-                        // LEVEL
-                        SidebarStat(label = "LEVEL", value = (level + 1).toString(), valueColor = Color(0xFF60A5FA))
+                            // LEVEL
+                            SidebarStat(label = "LEVEL", value = (level + 1).toString(), valueColor = Color(0xFF60A5FA))
 
-                        // LINES
-                        SidebarStat(label = "LINES", value = lines.toString(), valueColor = Color(0xFFFBBF24))
+                            // LINES
+                            SidebarStat(label = "LINES", value = lines.toString(), valueColor = Color(0xFFFBBF24))
+                        }
+
+                        // Spacer to push everything to the top and prevent it from stretching down
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
 
             // ── CONTROL PANEL ────────────────────────────────────────────────
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.48f)
+                    .weight(0.42f)           // Slightly reduced weight to balance the taller screen bezel
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(Color(0xFF191C23), ConsoleBody)
                         )
                     )
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // D-Pad — left side, centered vertically
-                DPad(
+                // Main Controls Row (DPad on Left, Rotate on Right, arranged SpaceEvenly to stay closer to center)
+                Row(
                     modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(bottom = 36.dp),
-                    onLeft  = { moveLeft() },
-                    onRight = { moveRight() },
-                    onUp    = { rotate() },       // D-pad Up = alternate rotate
-                    onFastDropStart = { isFastDrop = true },
-                    onFastDropEnd   = { isFastDrop = false }
-                )
-
-                // Rotate action button — right side, centered vertically
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(bottom = 36.dp, end = 8.dp)
+                        .fillMaxWidth()
+                        .weight(1f),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Outer shadow ring
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF6A0000))
-                            .padding(3.dp)
+                    // D-Pad
+                    DPad(
+                        onLeft  = { moveLeft() },
+                        onRight = { moveRight() },
+                        onUp    = { rotate() },
+                        onFastDropStart = { isFastDrop = true },
+                        onFastDropEnd   = { isFastDrop = false }
+                    )
+
+                    // Rotate action button
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
+                        // Outer shadow ring
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .size(90.dp) // Increased size from 80.dp
                                 .clip(CircleShape)
-                                .background(
-                                    Brush.radialGradient(
-                                        colors = listOf(RotateBtnHigh, RotateBtn, Color(0xFF7B1010))
-                                    )
-                                )
-                                .pointerInput(Unit) {
-                                    detectTapGestures(onPress = {
-                                        rotate()
-                                        tryAwaitRelease()
-                                    })
-                                },
-                            contentAlignment = Alignment.Center
+                                .background(Color(0xFF6A0000))
+                                .padding(4.dp)
                         ) {
-                            Text(
-                                text = "↺",
-                                color = Color.White,
-                                fontSize = 30.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.radialGradient(
+                                            colors = listOf(RotateBtnHigh, RotateBtn, Color(0xFF7B1010))
+                                        )
+                                    )
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(onPress = {
+                                            rotate()
+                                            tryAwaitRelease()
+                                        })
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "↺",
+                                    color = Color.White,
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "ROTATE",
+                            color = StatLabel,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
                     }
-                    // Label below button
-                    Text(
-                        text = "ROTATE",
-                        color = StatLabel,
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(top = 84.dp)
-                    )
                 }
 
                 // ── Pill buttons: RESET + PAUSE ── centered at bottom ────────
                 Row(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     PillButton(label = "RESET", onClick = { resetGame() })
@@ -628,8 +647,8 @@ private fun DPad(
     onUp: () -> Unit,
     onFastDropStart: () -> Unit,
     onFastDropEnd: () -> Unit,
-    armSize: Dp = 44.dp,
-    centerSize: Dp = 40.dp
+    armSize: Dp = 48.dp,
+    centerSize: Dp = 44.dp
 ) {
     val totalSize = armSize * 3
 
