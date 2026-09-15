@@ -39,6 +39,7 @@ android {
     }
     buildFeatures {
         compose = true
+        viewBinding = true
     }
 }
 
@@ -61,4 +62,7 @@ dependencies {
     implementation(kotlin("test"))
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.firestore)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.compose.material.icons.extended)
 }
