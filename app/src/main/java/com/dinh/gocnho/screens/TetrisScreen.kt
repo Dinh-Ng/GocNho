@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +52,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -671,18 +673,24 @@ private fun DPad(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            DPadArm(size = armSize, shape = RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp)) {
-                onLeft()
-            }
+            DPadRepeatArm(
+                size = armSize,
+                shape = RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp),
+                glyph = "◄",
+                onMove = onLeft
+            )
             // Center non-interactive piece
             Box(
                 modifier = Modifier
                     .size(centerSize)
                     .background(DPadArm)
             )
-            DPadArm(size = armSize, shape = RoundedCornerShape(topEnd = 6.dp, bottomEnd = 6.dp)) {
-                onRight()
-            }
+            DPadRepeatArm(
+                size = armSize,
+                shape = RoundedCornerShape(topEnd = 6.dp, bottomEnd = 6.dp),
+                glyph = "►",
+                onMove = onRight
+            )
         }
         // Row 3: Down (hold = fast drop)
         Row(
@@ -733,6 +741,47 @@ private fun DPadArm(size: Dp, shape: RoundedCornerShape, onClick: () -> Unit) {
     }
 }
 
+/**
+ * D-pad arm that fires [onMove] immediately on press, then auto-repeats:
+ *   • 175 ms initial delay before the first repeat
+ *   • 50 ms interval between subsequent repeats
+ * The loop is cancelled automatically when the finger is lifted.
+ */
+@Composable
+private fun DPadRepeatArm(
+    size: Dp,
+    shape: RoundedCornerShape,
+    glyph: String,
+    onMove: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    Box(
+        modifier = Modifier
+            .size(size)
+            .background(color = DPadArm, shape = shape)
+            .clip(shape)
+            .pointerInput(Unit) {
+                detectTapGestures(onPress = {
+                    // Immediate first step
+                    onMove()
+                    // Launch auto-repeat coroutine that lives until the press ends
+                    val job = scope.launch {
+                        delay(175L)        // initial hold delay
+                        while (true) {
+                            onMove()
+                            delay(50L)     // repeat interval
+                        }
+                    }
+                    tryAwaitRelease()      // suspends until finger up
+                    job.cancel()           // stop repeating
+                })
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(glyph, color = Color(0xFF8899AA), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Sidebar stat row
 // ──────────────────────────────────────────────────────────────────────────────
@@ -746,14 +795,14 @@ private fun SidebarStat(label: String, value: String, valueColor: Color) {
         Text(
             text = label,
             color = StatLabel,
-            fontSize = 8.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.sp
         )
         Text(
             text = value,
             color = valueColor,
-            fontSize = 16.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.Black,
             textAlign = TextAlign.Center
         )
