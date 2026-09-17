@@ -43,6 +43,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -57,6 +58,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -615,53 +617,98 @@ fun ChapterReaderScreen(
     savedScrollPx: Int = 0,
     onScrollChanged: (String, Int) -> Unit = { _, _ -> }
 ) {
-    val scrollState = rememberScrollState(initial = savedScrollPx)
+    // key(chapter.id) đảm bảo scrollState tự reset về 0 khi mở chương mới
+    key(chapter.id) {
+        val scrollState = rememberScrollState(initial = savedScrollPx)
 
-    // Debounce 500ms rồi lưu vị trí scroll
-    LaunchedEffect(scrollState) {
-        snapshotFlow { scrollState.value }
-            .collectLatest { scrollPx ->
-                delay(500)
-                onScrollChanged(chapter.id, scrollPx)
-            }
-    }
+        // Tính phần trăm đọc inline — không cần thêm State, Compose tự recompose khi scroll
+        val readPercent = if (scrollState.maxValue > 0)
+            (scrollState.value.toFloat() / scrollState.maxValue * 100).toInt().coerceIn(0, 100)
+        else 0
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
-    ) {
-        TextButton(onClick = onBack, contentPadding = PaddingValues(0.dp)) {
-            Text("← Quay lại danh sách chương", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+        // Debounce 500ms rồi lưu vị trí scroll
+        LaunchedEffect(scrollState) {
+            snapshotFlow { scrollState.value }
+                .collectLatest { scrollPx ->
+                    delay(500)
+                    onScrollChanged(chapter.id, scrollPx)
+                }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = chapter.title.ifBlank { "Nội dung chương" },
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            Text(
-                text = chapter.content.ifBlank { "Không có nội dung cho chương này." },
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    lineHeight = 26.sp,
-                    fontSize = 16.sp
-                ),
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 4.dp, bottom = 16.dp)
+            ) {
+                // Thanh back + % đọc trên cùng một hàng
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onBack, contentPadding = PaddingValues(0.dp)) {
+                        Text(
+                            "← Quay lại danh sách chương",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Text(
+                        text = "$readPercent%",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                // ── Progress bar mỏng ngay dưới header ──
+                LinearProgressIndicator(
+                    progress = { readPercent / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(50)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = chapter.title.ifBlank { "Nội dung chương" },
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                ) {
+                    Text(
+                        text = chapter.content.ifBlank { "Không có nội dung cho chương này." },
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            lineHeight = 26.sp,
+                            fontSize = 16.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    // Padding cuối để thanh progress không che text khi đọc đến cuối
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
+            }
         }
     }
 }
+
 
 @Composable
 private fun StoryDetailDialog(
