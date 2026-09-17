@@ -73,6 +73,11 @@ import com.dinh.gocnho.model.Story
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.material.icons.filled.PlayArrow
 
 @Composable
 fun StoryScreen(
@@ -99,6 +104,14 @@ fun StoryScreen(
         mutableStateOf(
             sharedPrefs.all.mapValues { entry -> (entry.value as? Long) ?: 0L }
         )
+    }
+
+    // SharedPreferences lưu tiến độ đọc: chapter cuối & vị trí scroll
+    val chapterProgressPrefs = remember {
+        context.getSharedPreferences("reading_progress_chapter", Context.MODE_PRIVATE)
+    }
+    val scrollProgressPrefs = remember {
+        context.getSharedPreferences("reading_progress_scroll", Context.MODE_PRIVATE)
     }
 
     // Hàm cập nhật lịch sử đọc truyện
@@ -183,16 +196,26 @@ fun StoryScreen(
 
     when {
         activeChapterForReading != null -> {
+            val chapter = activeChapterForReading!!
             ChapterReaderScreen(
-                chapter = activeChapterForReading!!,
-                onBack = { activeChapterForReading = null }
+                chapter = chapter,
+                onBack = { activeChapterForReading = null },
+                savedScrollPx = scrollProgressPrefs.getInt(chapter.id, 0),
+                onScrollChanged = { chapterId, scrollPx ->
+                    scrollProgressPrefs.edit().putInt(chapterId, scrollPx).apply()
+                }
             )
         }
         activeStoryForChapters != null -> {
+            val story = activeStoryForChapters!!
             ChapterListScreen(
-                story = activeStoryForChapters!!,
+                story = story,
                 onBack = { activeStoryForChapters = null },
-                onChapterClick = { chapter -> activeChapterForReading = chapter }
+                lastChapterId = chapterProgressPrefs.getString(story.id, null),
+                onChapterClick = { chapter ->
+                    chapterProgressPrefs.edit().putString(story.id, chapter.id).apply()
+                    activeChapterForReading = chapter
+                }
             )
         }
         else -> {
@@ -437,11 +460,13 @@ private fun StoryCard(
 fun ChapterListScreen(
     story: Story,
     onBack: () -> Unit,
-    onChapterClick: (Chapter) -> Unit
+    onChapterClick: (Chapter) -> Unit,
+    lastChapterId: String? = null
 ) {
     var chapters by remember { mutableStateOf<List<Chapter>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val listState = rememberLazyListState()
 
     DisposableEffect(story.id) {
         val firestore = FirebaseFirestore.getInstance()
@@ -463,6 +488,16 @@ fun ChapterListScreen(
                 }
             }
         onDispose { registration.remove() }
+    }
+
+    // Auto-scroll đến chương cuối đọc khi danh sách sẵn sàng
+    LaunchedEffect(chapters, lastChapterId) {
+        if (lastChapterId != null && chapters.isNotEmpty()) {
+            val targetIndex = chapters.indexOfFirst { it.id == lastChapterId }
+            if (targetIndex >= 0) {
+                listState.animateScrollToItem(targetIndex)
+            }
+        }
     }
 
     Column(
@@ -512,23 +547,59 @@ fun ChapterListScreen(
             }
             else -> {
                 LazyColumn(
+                    state = listState,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(chapters, key = { it.id }) { chapter ->
+                        val isLastRead = chapter.id == lastChapterId
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onChapterClick(chapter) },
                             shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                        ) {
-                            Text(
-                                text = chapter.title.ifBlank { "Chương không tên" },
-                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                                modifier = Modifier.padding(16.dp),
-                                color = MaterialTheme.colorScheme.onSurface
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isLastRead)
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                                else
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                             )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = chapter.title.ifBlank { "Chương không tên" },
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                    color = if (isLastRead)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (isLastRead) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.PlayArrow,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(14.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Text(
+                                            text = "Đọc tiếp",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -540,8 +611,21 @@ fun ChapterListScreen(
 @Composable
 fun ChapterReaderScreen(
     chapter: Chapter,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    savedScrollPx: Int = 0,
+    onScrollChanged: (String, Int) -> Unit = { _, _ -> }
 ) {
+    val scrollState = rememberScrollState(initial = savedScrollPx)
+
+    // Debounce 500ms rồi lưu vị trí scroll
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.value }
+            .collectLatest { scrollPx ->
+                delay(500)
+                onScrollChanged(chapter.id, scrollPx)
+            }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -565,7 +649,7 @@ fun ChapterReaderScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
         ) {
             Text(
                 text = chapter.content.ifBlank { "Không có nội dung cho chương này." },
