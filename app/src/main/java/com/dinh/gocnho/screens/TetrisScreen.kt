@@ -1,5 +1,6 @@
 package com.dinh.gocnho.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -244,6 +245,7 @@ private val AccentCyan       = Color(0xFF00BCD4)
 
 @Composable
 fun TetrisScreen(onBack: () -> Unit) {
+    BackHandler(onBack = onBack)
 
     // ── Game state (unchanged) ──────────────────────────────────────────────
     var board by remember { mutableStateOf(Array(BOARD_ROWS) { arrayOfNulls<Color?>(BOARD_COLS) }) }

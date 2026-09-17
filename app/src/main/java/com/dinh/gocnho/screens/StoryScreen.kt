@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -465,6 +466,8 @@ fun ChapterListScreen(
     onChapterClick: (Chapter) -> Unit,
     lastChapterId: String? = null
 ) {
+    BackHandler(onBack = onBack)
+
     var chapters by remember { mutableStateOf<List<Chapter>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -617,6 +620,8 @@ fun ChapterReaderScreen(
     savedScrollPx: Int = 0,
     onScrollChanged: (String, Int) -> Unit = { _, _ -> }
 ) {
+    BackHandler(onBack = onBack)
+
     // key(chapter.id) đảm bảo scrollState tự reset về 0 khi mở chương mới
     key(chapter.id) {
         val scrollState = rememberScrollState(initial = savedScrollPx)

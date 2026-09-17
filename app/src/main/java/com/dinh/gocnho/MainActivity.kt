@@ -2,6 +2,7 @@ package com.dinh.gocnho
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -48,6 +49,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -102,6 +104,7 @@ fun MainScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedScreen by remember { mutableStateOf(Screen.HOME) }
+    val screenStack = remember { mutableStateListOf(Screen.HOME) }
     // Tracks which game is currently open (null = show game list)
     var currentGameId by remember { mutableStateOf<String?>(null) }
     
@@ -115,13 +118,33 @@ fun MainScreen(
         AppThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
     }
 
+    // Đóng drawer nếu đang mở khi bấm Back
+    BackHandler(enabled = drawerState.isOpen) {
+        scope.launch { drawerState.close() }
+    }
+
+    // Quay lại màn hình trước đó trong stack khi ở các tab khác ngoài HOME
+    BackHandler(enabled = !drawerState.isOpen && currentGameId == null && screenStack.size > 1) {
+        screenStack.removeAt(screenStack.lastIndex)
+        selectedScreen = screenStack.last()
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             AppDrawer(
                 selectedScreen = selectedScreen,
                 onScreenSelected = { screen ->
-                    selectedScreen = screen
+                    if (selectedScreen != screen) {
+                        if (screen == Screen.HOME) {
+                            screenStack.clear()
+                            screenStack.add(Screen.HOME)
+                        } else {
+                            screenStack.remove(screen)
+                            screenStack.add(screen)
+                        }
+                        selectedScreen = screen
+                    }
                     scope.launch { drawerState.close() }
                 },
                 isDarkTheme = isDarkUI,
