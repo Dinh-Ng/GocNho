@@ -99,6 +99,8 @@ fun StoryScreen(
     // Quản lý điều hướng danh sách chương và màn hình đọc truyện
     var activeStoryForChapters by remember { mutableStateOf<Story?>(null) }
     var activeChapterForReading by remember { mutableStateOf<Chapter?>(null) }
+    // Cache danh sách chương để dùng điều hướng Prev/Next trong ChapterReaderScreen
+    var chapterListCache by remember { mutableStateOf<List<Chapter>>(emptyList()) }
 
     // Sử dụng SharedPreferences để quản lý lịch sử đọc truyện lưu local
     val sharedPrefs = remember { context.getSharedPreferences("story_history_prefs", Context.MODE_PRIVATE) }
@@ -202,6 +204,13 @@ fun StoryScreen(
             val chapter = activeChapterForReading!!
             ChapterReaderScreen(
                 chapter = chapter,
+                chapters = chapterListCache,
+                onNavigateToChapter = { newChapter ->
+                    activeChapterForReading = newChapter
+                    activeStoryForChapters?.id?.let { storyId ->
+                        chapterProgressPrefs.edit().putString(storyId, newChapter.id).apply()
+                    }
+                },
                 onBack = { activeChapterForReading = null },
                 savedScrollPx = scrollProgressPrefs.getInt(chapter.id, 0),
                 onScrollChanged = { chapterId, scrollPx ->
@@ -215,6 +224,7 @@ fun StoryScreen(
                 story = story,
                 onBack = { activeStoryForChapters = null },
                 lastChapterId = chapterProgressPrefs.getString(story.id, null),
+                onChaptersLoaded = { chapterListCache = it },
                 onChapterClick = { chapter ->
                     chapterProgressPrefs.edit().putString(story.id, chapter.id).apply()
                     activeChapterForReading = chapter
@@ -464,7 +474,8 @@ fun ChapterListScreen(
     story: Story,
     onBack: () -> Unit,
     onChapterClick: (Chapter) -> Unit,
-    lastChapterId: String? = null
+    lastChapterId: String? = null,
+    onChaptersLoaded: (List<Chapter>) -> Unit = {}
 ) {
     BackHandler(onBack = onBack)
 
@@ -487,9 +498,11 @@ fun ChapterListScreen(
                 }
                 if (snapshot != null) {
                     errorMessage = null
-                    chapters = snapshot.documents.mapNotNull { doc ->
+                    val loaded = snapshot.documents.mapNotNull { doc ->
                         doc.toObject(Chapter::class.java)?.copy(id = doc.id)
                     }
+                    chapters = loaded
+                    onChaptersLoaded(loaded)
                 }
             }
         onDispose { registration.remove() }
@@ -616,6 +629,8 @@ fun ChapterListScreen(
 @Composable
 fun ChapterReaderScreen(
     chapter: Chapter,
+    chapters: List<Chapter> = emptyList(),
+    onNavigateToChapter: (Chapter) -> Unit = {},
     onBack: () -> Unit,
     savedScrollPx: Int = 0,
     onScrollChanged: (String, Int) -> Unit = { _, _ -> }
@@ -640,6 +655,11 @@ fun ChapterReaderScreen(
                 }
         }
 
+        // Tính chỉ số chương hiện tại để điều hướng Prev/Next
+        val currentIndex = chapters.indexOfFirst { it.id == chapter.id }
+        val hasPrev = currentIndex > 0
+        val hasNext = currentIndex >= 0 && currentIndex < chapters.lastIndex
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -649,7 +669,7 @@ fun ChapterReaderScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
-                    .padding(top = 4.dp, bottom = 16.dp)
+                    .padding(top = 4.dp, bottom = 0.dp)
             ) {
                 // Thanh back + % đọc trên cùng một hàng
                 Row(
@@ -693,9 +713,10 @@ fun ChapterReaderScreen(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
+                // Nội dung chương — dùng weight(1f) để nhường chỗ cho bottom nav
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(1f)
                         .verticalScroll(scrollState)
                 ) {
                     Text(
@@ -706,8 +727,35 @@ fun ChapterReaderScreen(
                         ),
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    // Padding cuối để thanh progress không che text khi đọc đến cuối
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                // ── Thanh điều hướng chương Prev / Next ──
+                if (chapters.isNotEmpty()) {
+                    HorizontalDivider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        OutlinedButton(
+                            onClick = { onNavigateToChapter(chapters[currentIndex - 1]) },
+                            enabled = hasPrev,
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text("← Chương trước", fontSize = 13.sp)
+                        }
+                        OutlinedButton(
+                            onClick = { onNavigateToChapter(chapters[currentIndex + 1]) },
+                            enabled = hasNext,
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text("Chương tiếp →", fontSize = 13.sp)
+                        }
+                    }
                 }
             }
         }
