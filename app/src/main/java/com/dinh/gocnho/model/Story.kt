@@ -18,10 +18,29 @@ data class Story(
     // Không bắt buộc (Nullable)
     val author: String? = null,
     val authorLink: String? = null,
+    val source: String? = null,
+    val sourceLink: String? = null,
     val createdAt: Timestamp? = null,
     val createdBy: String? = null,
     val updatedAt: Timestamp? = null
 ) {
+    /**
+     * Helper lấy URL source của truyện (từ sourceLink hoặc source)
+     */
+    val getSourceUrl: String?
+        get() {
+            val raw = sourceLink?.ifBlank { null } ?: source?.ifBlank { null } ?: return null
+            val trimmed = raw.trim()
+            return if (trimmed.startsWith("http://", ignoreCase = true) ||
+                trimmed.startsWith("https://", ignoreCase = true) ||
+                (trimmed.contains(".") && !trimmed.contains(" "))
+            ) {
+                trimmed
+            } else {
+                null
+            }
+        }
+
     /**
      * Helper định dạng ngày giờ hiển thị lên UI (dành cho updatedAt hoặc createdAt)
      */

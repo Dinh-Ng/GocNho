@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -763,6 +764,22 @@ fun ChapterReaderScreen(
 }
 
 
+private fun openWebLink(context: Context, url: String) {
+    try {
+        val formattedUrl = if (!url.startsWith("http://", ignoreCase = true) &&
+            !url.startsWith("https://", ignoreCase = true)
+        ) {
+            "https://$url"
+        } else {
+            url
+        }
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(formattedUrl))
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(context, "Không thể mở đường dẫn", Toast.LENGTH_SHORT).show()
+    }
+}
+
 @Composable
 private fun StoryDetailDialog(
     story: Story,
@@ -802,21 +819,34 @@ private fun StoryDetailDialog(
                     style = MaterialTheme.typography.bodyMedium
                 )
 
+                val sourceText = story.source?.takeIf { it.isNotBlank() && story.getSourceUrl == null }
+                if (sourceText != null) {
+                    Text(
+                        text = "Nguồn: $sourceText",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
                 if (!story.authorLink.isNullOrBlank()) {
                     OutlinedButton(
-                        onClick = {
-                            try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(story.authorLink))
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Không thể mở đường dẫn", Toast.LENGTH_SHORT).show()
-                            }
-                        },
+                        onClick = { openWebLink(context, story.authorLink) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Trang tác giả", fontSize = 13.sp)
+                    }
+                }
+
+                val sourceUrl = story.getSourceUrl
+                if (!sourceUrl.isNullOrBlank()) {
+                    OutlinedButton(
+                        onClick = { openWebLink(context, sourceUrl) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Nguồn truyện", fontSize = 13.sp)
                     }
                 }
 
