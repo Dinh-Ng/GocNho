@@ -40,4 +40,37 @@
         android:textColor="#999999"
         tools:text="Cập nhật: 15/09/2026 10:30" />
 
+    <!-- Đường kẻ phân cách -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
+        android:background="#E0E0E0" />
+
+    <!-- 2 Nút: Đọc từ đầu & Đọc tiếp -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnReadFromBeginning"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="Đọc từ đầu"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnContinueReading"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="Đọc tiếp"
+            android:textSize="13sp" />
+    </LinearLayout>
+
 </LinearLayout>

@@ -128,6 +128,48 @@ fun StoryScreen(
         historyMap = sharedPrefs.all.mapValues { entry -> (entry.value as? Long) ?: 0L }
     }
 
+    // Hàm mở đọc truyện trực tiếp (từ đầu hoặc tiếp tục)
+    val openStoryToChapter = { story: Story, fromBeginning: Boolean ->
+        isLoading = true
+        updateStoryReadHistory(story.id)
+
+        FirebaseFirestore.getInstance()
+            .collection("stories")
+            .document(story.id)
+            .collection("chapters")
+            .orderBy("index")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                isLoading = false
+                if (snapshot != null && !snapshot.isEmpty) {
+                    val loadedChapters = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(Chapter::class.java)?.copy(id = doc.id)
+                    }
+                    chapterListCache = loadedChapters
+                    activeStoryForChapters = story
+
+                    if (fromBeginning) {
+                        val firstChapter = loadedChapters.first()
+                        chapterProgressPrefs.edit().putString(story.id, firstChapter.id).apply()
+                        scrollProgressPrefs.edit().remove(firstChapter.id).apply()
+                        activeChapterForReading = firstChapter
+                    } else {
+                        val savedChapterId = chapterProgressPrefs.getString(story.id, null)
+                        val targetChapter = loadedChapters.find { it.id == savedChapterId } ?: loadedChapters.first()
+                        chapterProgressPrefs.edit().putString(story.id, targetChapter.id).apply()
+                        activeChapterForReading = targetChapter
+                    }
+                } else {
+                    Toast.makeText(context, "Truyện chưa có chương nào", Toast.LENGTH_SHORT).show()
+                    activeStoryForChapters = story
+                }
+            }
+            .addOnFailureListener { error ->
+                isLoading = false
+                Toast.makeText(context, "Lỗi tải chương: ${error.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
     // Lắng nghe dữ liệu realtime từ Firestore collection "stories"
     DisposableEffect(Unit) {
         val firestore = FirebaseFirestore.getInstance()
@@ -369,6 +411,14 @@ fun StoryScreen(
                                         },
                                         onLongClick = {
                                             selectedStoryForDialog = story
+                                        },
+                                        onReadFromBeginning = {
+                                            openStoryToChapter(story, true)
+                                            onStorySelected?.invoke(story)
+                                        },
+                                        onContinueReading = {
+                                            openStoryToChapter(story, false)
+                                            onStorySelected?.invoke(story)
                                         }
                                     )
                                 }
@@ -394,7 +444,9 @@ fun StoryScreen(
 private fun StoryCard(
     story: Story,
     onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onLongClick: () -> Unit,
+    onReadFromBeginning: () -> Unit,
+    onContinueReading: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -465,6 +517,46 @@ private fun StoryCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 2 nút "Đọc từ đầu" và "Đọc tiếp" đặt bên dưới thông tin truyện
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onReadFromBeginning,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoStories,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Đọc từ đầu", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                }
+
+                Button(
+                    onClick = onContinueReading,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Đọc tiếp", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                }
             }
         }
     }

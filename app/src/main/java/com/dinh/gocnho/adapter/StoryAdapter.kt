@@ -10,7 +10,9 @@ import com.dinh.gocnho.databinding.ItemStoryBinding
 import com.dinh.gocnho.model.Story
 
 class StoryAdapter(
-    private val onItemClick: (Story) -> Unit
+    private val onItemClick: (Story) -> Unit,
+    private val onReadFromBeginningClick: ((Story) -> Unit)? = null,
+    private val onContinueReadingClick: ((Story) -> Unit)? = null
 ) : ListAdapter<Story, StoryAdapter.StoryViewHolder>(StoryDiffCallback) {
 
     inner class StoryViewHolder(
@@ -37,6 +39,16 @@ class StoryAdapter(
             // 4. Sự kiện click item -> lấy documentId
             binding.root.setOnClickListener {
                 onItemClick(story)
+            }
+
+            // 5. Sự kiện click nút "Đọc từ đầu"
+            binding.btnReadFromBeginning.setOnClickListener {
+                onReadFromBeginningClick?.invoke(story) ?: onItemClick(story)
+            }
+
+            // 6. Sự kiện click nút "Đọc tiếp"
+            binding.btnContinueReading.setOnClickListener {
+                onContinueReadingClick?.invoke(story) ?: onItemClick(story)
             }
         }
     }
