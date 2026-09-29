@@ -16,3 +16,6 @@ local.properties
 app/src/main/java/com/dinh/gocnho/test.kt
 
 .codegraph
+
+# Firebase / Secrets
+google-services.json
