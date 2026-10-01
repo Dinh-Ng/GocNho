@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -85,7 +86,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 
 @Composable
 fun StoryScreen(
-    onStorySelected: ((Story) -> Unit)? = null
+    onStorySelected: ((Story) -> Unit)? = null,
+    onBack: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     var storyList by remember { mutableStateOf<List<Story>>(emptyList()) }
@@ -279,22 +281,32 @@ fun StoryScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
+                    .statusBarsPadding()
             ) {
-                // Thanh công cụ sắp xếp
+                // Thanh công cụ: Nút Quay lại + Sắp xếp
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.End,
+                    horizontalArrangement = if (onBack != null) Arrangement.SpaceBetween else Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (onBack != null) {
+                        TextButton(onClick = onBack, contentPadding = PaddingValues(0.dp)) {
+                            Text(
+                                "← Trang chủ",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                     Box {
                         OutlinedButton(
                             onClick = { showSortMenu = true },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.Sort, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (isSortByRecent) "Vừa đọc gần đây" else "Mặc định",
@@ -615,6 +627,7 @@ fun ChapterListScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
             .padding(16.dp)
     ) {
         TextButton(onClick = onBack, contentPadding = PaddingValues(0.dp)) {
@@ -761,6 +774,7 @@ fun ChapterReaderScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .statusBarsPadding()
                     .padding(horizontal = 16.dp)
                     .padding(top = 4.dp, bottom = 0.dp)
             ) {

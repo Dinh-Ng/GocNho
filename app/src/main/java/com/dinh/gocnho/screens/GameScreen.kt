@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -63,7 +65,7 @@ data class GameItem(
 )
 
 @Composable
-fun GameScreen(onPlayClick: (GameItem) -> Unit = {}) {
+fun GameScreen(onPlayClick: (GameItem) -> Unit = {}, onBack: (() -> Unit)? = null) {
     var games by remember {
         mutableStateOf(
             listOf(
@@ -103,7 +105,20 @@ fun GameScreen(onPlayClick: (GameItem) -> Unit = {}) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F172A))
+            .statusBarsPadding()
     ) {
+        if (onBack != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onBack, contentPadding = PaddingValues(0.dp)) {
+                    Text("← Trang chủ", color = Color(0xFF38BDF8), fontWeight = FontWeight.Medium)
+                }
+            }
+        }
         TabRow(
             selectedTabIndex = pagerState.currentPage,
             containerColor = Color(0xFF1E293B),
