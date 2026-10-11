@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -62,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dinh.gocnho.screens.GameScreen
+import com.dinh.gocnho.screens.NovelAudioScreen
 import com.dinh.gocnho.screens.SettingsScreen
 import com.dinh.gocnho.screens.StoryScreen
 import com.dinh.gocnho.screens.TetrisScreen
@@ -85,7 +87,7 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class Screen {
-    HOME, STORY, GAME, SETTINGS
+    HOME, STORY, GAME, NOVEL_AUDIO, SETTINGS
 }
 
 // ──────────────────────────────────────────────────────────
@@ -118,6 +120,13 @@ fun MainScreen(
         // ── Màn hình Story (full-screen, không toolbar) ──
         selectedScreen == Screen.STORY -> {
             StoryScreen(
+                onBack = { selectedScreen = Screen.HOME }
+            )
+        }
+
+        // ── Màn hình Truyện Audio (full-screen, không toolbar) ──
+        selectedScreen == Screen.NOVEL_AUDIO -> {
+            NovelAudioScreen(
                 onBack = { selectedScreen = Screen.HOME }
             )
         }
@@ -169,6 +178,7 @@ fun MainScreen(
                 isAdmin = isAdmin,
                 onNavigateToStory = { selectedScreen = Screen.STORY },
                 onNavigateToGame = { selectedScreen = Screen.GAME },
+                onNavigateToNovelAudio = { selectedScreen = Screen.NOVEL_AUDIO },
                 onNavigateToSettings = { selectedScreen = Screen.SETTINGS },
                 onAvatarLongClick = {
                     if (isAdmin) showAdminLogoutDialog = true
@@ -215,6 +225,7 @@ fun HomeScreen(
     isAdmin: Boolean,
     onNavigateToStory: () -> Unit,
     onNavigateToGame: () -> Unit,
+    onNavigateToNovelAudio: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onAvatarLongClick: () -> Unit
 ) {
@@ -295,6 +306,17 @@ fun HomeScreen(
             gradient = listOf(Color(0xFF10B981), Color(0xFF059669)),
             badge = "HOT",
             onClick = onNavigateToGame
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        NavCard(
+            title = "Truyện Audio",
+            subtitle = "Nghe truyện bằng giọng đọc AI",
+            icon = Icons.Default.Headphones,
+            gradient = listOf(Color(0xFFF59E0B), Color(0xFFEF4444)),
+            badge = "MỚI",
+            onClick = onNavigateToNovelAudio
         )
 
         Spacer(modifier = Modifier.height(40.dp))
