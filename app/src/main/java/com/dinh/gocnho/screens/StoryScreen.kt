@@ -2,13 +2,9 @@ package com.dinh.gocnho.screens
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,12 +33,10 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,10 +45,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -77,12 +69,14 @@ import com.dinh.gocnho.model.Chapter
 import com.dinh.gocnho.model.Story
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.Query
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.core.content.edit
+import kotlin.time.Duration.Companion.milliseconds
+import androidx.core.net.toUri
 
 @Composable
 fun StoryScreen(
@@ -125,7 +119,7 @@ fun StoryScreen(
     // Hàm cập nhật lịch sử đọc truyện
     val updateStoryReadHistory = { storyId: String ->
         val currentTime = System.currentTimeMillis()
-        sharedPrefs.edit().putLong(storyId, currentTime).apply()
+        sharedPrefs.edit { putLong(storyId, currentTime) }
         // Cập nhật lại state để kích hoạt recompose và sắp xếp lại danh sách
         historyMap = sharedPrefs.all.mapValues { entry -> (entry.value as? Long) ?: 0L }
     }
@@ -152,13 +146,13 @@ fun StoryScreen(
 
                     if (fromBeginning) {
                         val firstChapter = loadedChapters.first()
-                        chapterProgressPrefs.edit().putString(story.id, firstChapter.id).apply()
-                        scrollProgressPrefs.edit().remove(firstChapter.id).apply()
+                        chapterProgressPrefs.edit { putString(story.id, firstChapter.id) }
+                        scrollProgressPrefs.edit { remove(firstChapter.id) }
                         activeChapterForReading = firstChapter
                     } else {
                         val savedChapterId = chapterProgressPrefs.getString(story.id, null)
                         val targetChapter = loadedChapters.find { it.id == savedChapterId } ?: loadedChapters.first()
-                        chapterProgressPrefs.edit().putString(story.id, targetChapter.id).apply()
+                        chapterProgressPrefs.edit { putString(story.id, targetChapter.id) }
                         activeChapterForReading = targetChapter
                     }
                 } else {
@@ -253,13 +247,13 @@ fun StoryScreen(
                 onNavigateToChapter = { newChapter ->
                     activeChapterForReading = newChapter
                     activeStoryForChapters?.id?.let { storyId ->
-                        chapterProgressPrefs.edit().putString(storyId, newChapter.id).apply()
+                        chapterProgressPrefs.edit { putString(storyId, newChapter.id) }
                     }
                 },
                 onBack = { activeChapterForReading = null },
                 savedScrollPx = scrollProgressPrefs.getInt(chapter.id, 0),
                 onScrollChanged = { chapterId, scrollPx ->
-                    scrollProgressPrefs.edit().putInt(chapterId, scrollPx).apply()
+                    scrollProgressPrefs.edit { putInt(chapterId, scrollPx) }
                 }
             )
         }
@@ -271,7 +265,7 @@ fun StoryScreen(
                 lastChapterId = chapterProgressPrefs.getString(story.id, null),
                 onChaptersLoaded = { chapterListCache = it },
                 onChapterClick = { chapter ->
-                    chapterProgressPrefs.edit().putString(story.id, chapter.id).apply()
+                    chapterProgressPrefs.edit { putString(story.id, chapter.id) }
                     activeChapterForReading = chapter
                 }
             )
@@ -756,7 +750,7 @@ fun ChapterReaderScreen(
         LaunchedEffect(scrollState) {
             snapshotFlow { scrollState.value }
                 .collectLatest { scrollPx ->
-                    delay(500)
+                    delay(500.milliseconds)
                     onScrollChanged(chapter.id, scrollPx)
                 }
         }
@@ -879,9 +873,9 @@ private fun openWebLink(context: Context, url: String) {
         } else {
             url
         }
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(formattedUrl))
+        val intent = Intent(Intent.ACTION_VIEW, formattedUrl.toUri())
         context.startActivity(intent)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         Toast.makeText(context, "Không thể mở đường dẫn", Toast.LENGTH_SHORT).show()
     }
 }
