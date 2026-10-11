@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -208,41 +209,37 @@ private fun drawEmptyCell(
 // ──────────────────────────────────────────────────────────────────────────────
 
 private val ConsoleBody      = Color(0xFF1E2127)   // charcoal console shell
-private val ConsoleMid       = Color(0xFF252830)   // slightly lighter areas
 private val ScreenBezel      = Color(0xFF0A0B0F)   // black LCD surround
 private val ScreenBorder     = Color(0xFF2A2D3A)   // bezel ring
 private val LcdBg            = Color(0xFF0D1117)   // LCD content background
 private val SidebarBg        = Color(0xFF080C14)   // right-panel background
-private val DPadColor        = Color(0xFF1A1D25)   // D-pad base
 private val DPadArm          = Color(0xFF252B38)   // D-pad arms
 private val RotateBtn        = Color(0xFFB71C1C)   // classic action-button red
 private val RotateBtnHigh    = Color(0xFFE53935)
-private val PillBg           = Color(0xFF2A2D3A)   // START / SELECT style
 private val StatLabel        = Color(0xFF5A6070)
-private val StatValue        = Color(0xFFE0E8F0)
 private val AccentCyan       = Color(0xFF00BCD4)
 
 // ──────────────────────────────────────────────────────────────────────────────
 // TetrisScreen — Classic Handheld Console Layout
 // ──────────────────────────────────────────────────────────────────────────────
 //
-//  ┌──────────────────────────────────────────────┐
-//  │  ←          T E T R I S                      │   ← thin title strip
-//  │  ┌────────────────────────────────────────┐  │
-//  │  │  [BOARD 10×20 – left 65%] │ [SIDEBAR]  │  │   ← black screen frame
+//  ┌───────────────────────────────────────────────┐
+//  │  ←                TETRIS                      │   ← thin title strip
+//  │  ┌─────────────────────────────────────────┐  │
+//  │  │  [BOARD 10×20 – left 65%] │ [SIDEBAR]   │  │   ← black screen frame
 //  │  │                           │  NEXT       │  │
 //  │  │                           │  SCORE      │  │
 //  │  │                           │  LEVEL      │  │
 //  │  │                           │  LINES      │  │
-//  │  └────────────────────────────────────────┘  │
+//  │  └─────────────────────────────────────────┘  │
 //  │  ─────────────── CONTROLS ──────────────────  │
-//  │   ┌─ D-PAD ─┐              ┌─ ROTATE ─┐      │
-//  │   │  ▲      │              │           │      │
-//  │   │◄ · ►   │              │    ↺      │      │
-//  │   │  ▼      │              │           │      │
+//  │   ┌─ D-PAD ─┐              ┌─ ROTATE  ─┐      │
+//  │   │    ▲    │              │           │      │
+//  │   │  ◄ · ►  │              │    ↺      │      │
+//  │   │    ▼    │              │           │      │
 //  │   └─────────┘              └───────────┘      │
-//  │       ┌──── RESET ────┐  ┌──── PAUSE ────┐   │
-//  └──────────────────────────────────────────────┘
+//  │       ┌──── RESET ────┐  ┌──── PAUSE ────┐    │
+//  └───────────────────────────────────────────────┘
 
 @Composable
 fun TetrisScreen(onBack: () -> Unit) {
@@ -292,7 +289,7 @@ fun TetrisScreen(onBack: () -> Unit) {
 
     LaunchedEffect(isPaused, isGameOver, level, isFastDrop) {
         while (!isPaused && !isGameOver) {
-            delay(if (isFastDrop) 50L else gravityMs(level))
+            delay((if (isFastDrop) 50L else gravityMs(level)).milliseconds)
             dropOne()
         }
     }
@@ -752,7 +749,7 @@ private fun DPadArm(size: Dp, shape: RoundedCornerShape, onClick: () -> Unit) {
  * D-pad arm that fires [onMove] immediately on press, then auto-repeats:
  *   • 175 ms initial delay before the first repeat
  *   • 50 ms interval between subsequent repeats
- * The loop is cancelled automatically when the finger is lifted.
+ * The loop is canceled automatically when the finger is lifted.
  */
 @Composable
 private fun DPadRepeatArm(
@@ -773,10 +770,10 @@ private fun DPadRepeatArm(
                     onMove()
                     // Launch auto-repeat coroutine that lives until the press ends
                     val job = scope.launch {
-                        delay(175L)        // initial hold delay
+                        delay(175L.milliseconds)        // initial hold delay
                         while (true) {
                             onMove()
-                            delay(50L)     // repeat interval
+                            delay(50L.milliseconds)     // repeat interval
                         }
                     }
                     tryAwaitRelease()      // suspends until finger up
