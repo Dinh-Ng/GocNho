@@ -65,4 +65,5 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.jsoup)
 }

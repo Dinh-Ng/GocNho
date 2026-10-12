@@ -433,14 +433,12 @@ private fun NavCard(
                 }
 
                 // Arrow indicator
-                Button(
-                    onClick = onClick,
-                    shape = CircleShape,
-                    modifier = Modifier.size(40.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White.copy(alpha = 0.25f)
-                    ),
-                    contentPadding = PaddingValues(0.dp)
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.25f)),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text("→", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }

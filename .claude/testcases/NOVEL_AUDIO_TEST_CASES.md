@@ -36,27 +36,23 @@
 
 ## 📌 MÔ-ĐUN 2: WEB NOVEL CONTENT PARSER (Bước 2)
 
-- [ ] **TC-MOD2-01** - _Happy Path_: **Parse nội dung chương từ truyenfull**
-  - **Steps**: 1. Nhập/Dán URL hợp lệ 1 chương từ `truyenfull.vn` vào Modal/Màn hình test. 2. Nhấn nút "Parse/Trích xuất".
+- [x] **TC-MOD2-01** - _Happy Path_: **Parse nội dung chương từ truyenfull**
+  - **Steps**: 1. Nhập/Dán URL hợp lệ 1 chương từ `truyenfull.live` vào Modal/Màn hình test. 2. Nhấn nút "Parse/Trích xuất".
   - **Expected Result**: Bóc tách chính xác: **Tên truyện**, **Tên chương**, **Nội dung chữ**, và **Link chương kế tiếp** (`nextChapterUrl`).
 
-- [ ] **TC-MOD2-02** - _Happy Path_: **Parse nội dung chương từ bachngocsach**
-  - **Steps**: 1. Nhập/Dán URL hợp lệ 1 chương từ `bachngocsach.com.vn`. 2. Nhấn nút "Parse/Trích xuất".
-  - **Expected Result**: Trích xuất đúng tên chương, nội dung chữ và URL chương kế tiếp tương ứng.
-
-- [ ] **TC-MOD2-03** - _Happy Path_: **Làm sạch văn bản (Sanitize Text)**
+- [x] **TC-MOD2-02** - _Happy Path_: **Làm sạch văn bản (Sanitize Text)**
   - **Steps**: 1. Parse một chương truyện có chứa quảng cáo xen kẽ. 2. Kiểm tra chuỗi `sanitizedContent`.
   - **Expected Result**: Các đoạn quảng cáo, ký tự rác được lọc sạch; dấu ngắt câu, ký tự đặc biệt được chuẩn hóa.
 
-- [ ] **TC-MOD2-04** - _Edge Case_: **Parse chương cuối cùng của truyện**
+- [x] **TC-MOD2-03** - _Edge Case_: **Parse chương cuối cùng của truyện**
   - **Steps**: 1. Nhập URL của chương cuối cùng trong một bộ truyện. 2. Nhấn "Parse/Trích xuất".
   - **Expected Result**: Bóc tách thành công nội dung chương; trường `nextChapterUrl` trả về `null` hoặc cờ nhận biết đã hết.
 
-- [ ] **TC-MOD2-05** - _Error Handling_: **Nhập URL không hợp lệ hoặc link lỗi 404**
+- [x] **TC-MOD2-04** - _Error Handling_: **Nhập URL không hợp lệ hoặc link lỗi 404**
   - **Steps**: 1. Nhập link hỏng (ví dụ: link 404 hoặc text không phải URL). 2. Nhấn "Parse/Trích xuất".
   - **Expected Result**: App hiển thị thông báo lỗi thân thiện, không bị crash.
 
-- [ ] **TC-MOD2-06** - _Error Handling_: **Nhập URL từ domain chưa hỗ trợ**
+- [x] **TC-MOD2-05** - _Error Handling_: **Nhập URL từ domain chưa hỗ trợ**
   - **Steps**: 1. Nhập URL từ một trang web lạ chưa cấu hình trong `ParserConfig`. 2. Nhấn "Parse/Trích xuất".
   - **Expected Result**: Hiển thị thông báo: "Trang web này chưa được hỗ trợ bóc tách tự động".
 
@@ -201,7 +197,7 @@
 ## 🔄 QUY TRÌNH PHỐI HỢP & MAPPING KIỂM THỬ
 
 - 🏁 **Hoàn thành Bước 1** -> Chạy kiểm thử: `TC-MOD1-01` đến `TC-MOD1-03`.
-- 🏁 **Hoàn thành Bước 2** -> Chạy kiểm thử: `TC-MOD2-01` đến `TC-MOD2-06`.
+- 🏁 **Hoàn thành Bước 2** -> Chạy kiểm thử: `TC-MOD2-01` đến `TC-MOD2-05`.
 - 🏁 **Hoàn thành Bước 3** -> Chạy kiểm thử: `TC-MOD3-01` đến `TC-MOD3-06`.
 - 🏁 **Hoàn thành Bước 4** -> Chạy kiểm thử: `TC-MOD4-01` đến `TC-MOD4-05`.
 - 🏁 **Hoàn thành Bước 5** -> Chạy kiểm thử: `TC-MOD5-01` đến `TC-MOD5-04`.

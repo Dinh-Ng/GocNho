@@ -11,6 +11,7 @@ composeBom = "2024.09.00"
 googleServices = "4.5.0"
 firebaseBom = "34.19.0"
 recyclerview = "1.4.0"
+jsoup = "1.18.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -32,6 +33,7 @@ firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
