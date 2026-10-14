@@ -11,6 +11,7 @@ import com.dinh.gocnho.model.DownloadStatus
 import com.dinh.gocnho.model.ListenStatus
 import com.dinh.gocnho.model.Novel
 import com.dinh.gocnho.model.NovelChapter
+import com.dinh.gocnho.model.ReadStatus
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -86,6 +87,12 @@ object NovelAudioStorage {
         if (idx >= 0) chapters[idx] = chapter else chapters.add(chapter)
         chapterPrefs(context).edit {
             putString("chapters_${chapter.novelId}", chaptersToJson(chapters))
+        }
+    }
+
+    fun saveChapters(context: Context, novelId: String, chapters: List<NovelChapter>) {
+        chapterPrefs(context).edit {
+            putString("chapters_$novelId", chaptersToJson(chapters))
         }
     }
 
@@ -233,6 +240,8 @@ object NovelAudioStorage {
         put("sanitizedContent", c.sanitizedContent ?: "")
         put("downloadStatus", c.downloadStatus.name)
         put("downloadProgress", c.downloadProgress)
+        put("readStatus", c.readStatus.name)
+        put("lastReadPosition", c.lastReadPosition.toDouble())
         put("listenStatus", c.listenStatus.name)
         put("lastListenedPosition", c.lastListenedPosition.toDouble())
         put("localAudioPath", c.localAudioPath ?: "")
@@ -251,6 +260,10 @@ object NovelAudioStorage {
             DownloadStatus.valueOf(o.optString("downloadStatus"))
         }.getOrDefault(DownloadStatus.IDLE),
         downloadProgress     = o.optInt("downloadProgress"),
+        readStatus           = runCatching {
+            ReadStatus.valueOf(o.optString("readStatus"))
+        }.getOrDefault(ReadStatus.UNREAD),
+        lastReadPosition     = o.optDouble("lastReadPosition", 0.0).toFloat(),
         listenStatus         = runCatching {
             ListenStatus.valueOf(o.optString("listenStatus"))
         }.getOrDefault(ListenStatus.UNLISTENED),

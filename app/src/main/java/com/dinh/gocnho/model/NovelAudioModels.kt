@@ -17,7 +17,17 @@ enum class DownloadStatus {
     FAILED
 }
 
-// ── 2. Trạng thái nghe của một chương ────────────────────────────────────────
+// ── 2. Trạng thái đọc thủ công của một chương ───────────────────────────────
+enum class ReadStatus {
+    /** Chưa đọc */
+    UNREAD,
+    /** Đang đọc (đã mở nhưng chưa cuộn đến cuối) */
+    READING,
+    /** Đã đọc xong (cuộn đến cuối chương) */
+    READ
+}
+
+// ── 3. Trạng thái nghe của một chương ────────────────────────────────────────
 enum class ListenStatus {
     /** Chưa nghe */
     UNLISTENED,
@@ -27,7 +37,7 @@ enum class ListenStatus {
     LISTENED
 }
 
-// ── 3. Trạng thái của một Gemini API Key ─────────────────────────────────────
+// ── 4. Trạng thái của một Gemini API Key ─────────────────────────────────────
 enum class ApiKeyStatus {
     /** Key sẵn sàng sử dụng */
     ACTIVE,
@@ -61,13 +71,17 @@ data class NovelChapter(
     val sanitizedContent: String? = null,
     val downloadStatus: DownloadStatus = DownloadStatus.IDLE,
     val downloadProgress: Int = 0,
+    /** Trạng thái đọc thủ công (Bước 3) */
+    val readStatus: ReadStatus = ReadStatus.UNREAD,
+    /** Vị trí cuộn scroll (0f..1f) khi đọc thủ công lần cuối (Bước 3) */
+    val lastReadPosition: Float = 0f,
     val listenStatus: ListenStatus = ListenStatus.UNLISTENED,
     val lastListenedPosition: Float = 0f,
     val localAudioPath: String? = null,
     val audioFileSize: Long = -1L
 )
 
-// ── 6. ApiKeyInfo – Thông tin một Gemini API Key ──────────────────────────────
+// ── 6. ApiKeyInfo – Thông tin một Gemini API Key ─────────────────────────────
 data class ApiKeyInfo(
     val id: String = "",
     val key: String = "",

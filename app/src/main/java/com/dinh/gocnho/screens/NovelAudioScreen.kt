@@ -31,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
@@ -41,7 +42,9 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -91,7 +94,8 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun NovelAudioScreen(
-    onBack: (() -> Unit)? = null
+    onBack: (() -> Unit)? = null,
+    onNavigateToDownload: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -216,6 +220,24 @@ fun NovelAudioScreen(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("Modal", fontSize = 12.sp)
+            }
+
+            // Nút chuyển sang màn hình Tải & Đọc (Bước 3)
+            if (onNavigateToDownload != null) {
+                Spacer(modifier = Modifier.width(4.dp))
+                FilledTonalButton(
+                    onClick = onNavigateToDownload,
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Tải & Đọc", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
 

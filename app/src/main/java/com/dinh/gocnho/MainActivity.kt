@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dinh.gocnho.screens.GameScreen
 import com.dinh.gocnho.screens.NovelAudioScreen
+import com.dinh.gocnho.screens.NovelDownloadScreen
 import com.dinh.gocnho.screens.SettingsScreen
 import com.dinh.gocnho.screens.StoryScreen
 import com.dinh.gocnho.screens.TetrisScreen
@@ -87,7 +88,7 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class Screen {
-    HOME, STORY, GAME, NOVEL_AUDIO, SETTINGS
+    HOME, STORY, GAME, NOVEL_AUDIO, NOVEL_DOWNLOAD, SETTINGS
 }
 
 // ──────────────────────────────────────────────────────────
@@ -127,7 +128,15 @@ fun MainScreen(
         // ── Màn hình Truyện Audio (full-screen, không toolbar) ──
         selectedScreen == Screen.NOVEL_AUDIO -> {
             NovelAudioScreen(
-                onBack = { selectedScreen = Screen.HOME }
+                onBack = { selectedScreen = Screen.HOME },
+                onNavigateToDownload = { selectedScreen = Screen.NOVEL_DOWNLOAD }
+            )
+        }
+
+        // ── Màn hình Tải & Đọc Truyện Offline (full-screen) ──
+        selectedScreen == Screen.NOVEL_DOWNLOAD -> {
+            NovelDownloadScreen(
+                onBack = { selectedScreen = Screen.NOVEL_AUDIO }
             )
         }
 
